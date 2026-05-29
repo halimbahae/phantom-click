@@ -1,11 +1,11 @@
 [package]
 name = "phantom-click"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
-description = "Cross-platform mouse cursor position and click simulation library"
+description = "Cross-platform mouse cursor position, movement, and click simulation library"
 license = "MIT"
 repository = "https://github.com/halimbahae/phantom-click"
-keywords = ["mouse", "cursor", "click", "auto-clicker", "macos"]
+keywords = ["mouse", "cursor", "click", "auto-clicker", "macos", "mcp"]
 categories = ["hardware-support", "gui"]
 
 [dependencies]

@@ -1,40 +1,90 @@
 # Phantom Click
 
-> **Cross-platform auto-clicker with global hotkeys, TUI, and GUI.**
+> **Cross-platform auto-clicker with global hotkeys, TUI, GUI, and MCP server for AI assistants.**
 
-Click anywhere on screen — hotkeys work system-wide. Available as a terminal app with matrix-rain UI, a native desktop GUI, and a Rust library.
+Click anywhere on screen — hotkeys work system-wide. Available as a terminal app
+with matrix-rain UI, a native desktop GUI, a Rust library, and an MCP server
+that AI assistants (Claude, Cursor) can control directly.
 
 ## Quick Start
 
 ```bash
-# Terminal UI (macOS)
-cargo run --release -p phantom-click-cli
+# One-line install (macOS / Linux)
+curl -fsSL https://raw.githubusercontent.com/halimbahae/phantom-click/main/install.sh | bash
 
-# Desktop GUI (all platforms)
-cargo run --release -p phantom-click-gui
-
-# With custom CPS
-cargo run --release -p phantom-click-cli -- 20
-```
-
-Or install:
-```bash
+# Or via Cargo
 cargo install phantom-click-cli
 phantom-click 20
+
+# Desktop GUI
+cargo install phantom-click-gui
+phantom-click-gui
+
+# MCP server (for AI assistants)
+cargo install phantom-click-mcp
+phantom-click-mcp
 ```
 
-## Crates
+## Features
 
-| Crate | Description | `cargo add` |
-|-------|-------------|-------------|
-| [`phantom-click`](https://crates.io/crates/phantom-click) | Core library (cursor, clicker) | `cargo add phantom-click` |
-| [`phantom-click-cli`](https://crates.io/crates/phantom-click-cli) | Terminal auto-clicker with TUI | `cargo install phantom-click-cli` |
-| [`phantom-click-gui`](https://crates.io/crates/phantom-click-gui) | Native desktop GUI (egui) | `cargo install phantom-click-gui` |
-| [`phantom-click-mcp`](https://crates.io/crates/phantom-click-mcp) | MCP server for AI assistants | `cargo install phantom-click-mcp` |
+| Feature | CLI | GUI | MCP | Library |
+|---------|:---:|:---:|:---:|:-------:|
+| Global hotkeys | ✅ | ✅ | — | — |
+| Matrix-rain TUI | ✅ | — | — | — |
+| Native window | — | ✅ | — | — |
+| CPS slider | — | ✅ | ✅ | — |
+| Live cursor position | ✅ | ✅ | ✅ | ✅ |
+| Click once | ✅ | ✅ | ✅ | ✅ |
+| Click for duration | — | ✅ | ✅ | ✅ |
+| Auto-clicker (toggle) | ✅ | ✅ | — | ✅ |
+| Move mouse | — | — | ✅ | ✅ |
+| AI assistant control | — | — | ✅ | — |
+| Cross-platform | ✅ | ✅ | ✅ | ✅ |
 
-## Controls (CLI)
+## Install
 
-All keys work globally in any application.
+### One-line Install (macOS / Linux)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/halimbahae/phantom-click/main/install.sh | bash
+```
+
+### Cargo Install
+
+```bash
+# Terminal auto-clicker (installed as `phantom-click`)
+cargo install phantom-click-cli
+
+# Desktop GUI
+cargo install phantom-click-gui
+
+# MCP server
+cargo install phantom-click-mcp
+
+# Library (for your Rust projects)
+cargo add phantom-click
+```
+
+### Build from Source
+
+```bash
+git clone https://github.com/halimbahae/phantom-click.git
+cd phantom-click
+cargo build --release
+
+# Binaries are in target/release/
+#   phantom-click         CLI TUI
+#   phantom-click-gui     Desktop GUI
+#   phantom-click-mcp     MCP server
+```
+
+## Usage
+
+### Terminal UI (CLI)
+
+```bash
+phantom-click [CPS]
+```
 
 | Key | Action |
 |-----|--------|
@@ -44,71 +94,110 @@ All keys work globally in any application.
 | `H` | Toggle help overlay |
 | `Q` / `Esc` | Quit |
 
-## GUI
+### Desktop GUI
 
-Launch a native desktop window with:
-- Click toggle button
+```bash
+phantom-click-gui
+```
+
+Features:
+- Start/Stop toggle
 - CPS slider (1-200)
 - Live cursor position
 - One-click button
 
-```bash
-cargo run --release -p phantom-click-gui
-```
-
-## MCP Server
-
-Use with any MCP-compatible AI assistant (Claude, etc.):
+### MCP Server (AI Assistants)
 
 ```bash
-cargo run --release -p phantom-click-mcp
+phantom-click-mcp [OPTIONS]
 ```
 
-Exposes tools:
-- `get_cursor_position` — current mouse position
-- `click` — single click at cursor
-- `get_status` — server status
+Options:
+- `-t, --timeout <SECONDS>` – Global timeout (auto-exit after N seconds)
+- `-s, --silent` – Suppress stderr (default for stdio MCP)
+- `-v, --verbose` – Enable stderr logging
 
-## Library
+Available tools: `get_cursor_position`, `move_mouse`, `click`,
+`click_for_duration`, `get_status`.
+
+See [docs/mcp-integration.md](docs/mcp-integration.md) for AI assistant config.
+
+## Crates
+
+| Crate | Description | `cargo` |
+|-------|-------------|---------|
+| [`phantom-click`](https://crates.io/crates/phantom-click) | Core library (cursor, clicker) | `cargo add phantom-click` |
+| [`phantom-click-cli`](https://crates.io/crates/phantom-click-cli) | Terminal auto-clicker with TUI | `cargo install phantom-click-cli` |
+| [`phantom-click-gui`](https://crates.io/crates/phantom-click-gui) | Native desktop GUI (egui) | `cargo install phantom-click-gui` |
+| [`phantom-click-mcp`](https://crates.io/crates/phantom-click-mcp) | MCP server for AI assistants | `cargo install phantom-click-mcp` |
+
+## SDK / Library
 
 ```rust
 use phantom_click::{cursor, clicker};
 
+// Get cursor position
 let (x, y) = cursor::position();
+
+// Move cursor (macOS, Linux, Windows)
+cursor::move_to(500.0, 300.0);
+
+// Single click at current position
 clicker::click_once()?;
 
+// Click for duration (synchronous)
+use std::sync::atomic::{AtomicBool, Ordering};
+let stop = AtomicBool::new(false);
+let count = clicker::click_for_duration(50, 10.0, &stop);
+
 // Background auto-clicker
-use std::sync::atomic::{AtomicBool, AtomicU64};
 use std::sync::Arc;
-clicker::spawn_clicker(Arc::new(AtomicBool::new(true)),
-                       Arc::new(AtomicU64::new(10)));
+clicker::spawn_clicker(
+    Arc::new(AtomicBool::new(true)),
+    Arc::new(AtomicU64::new(10)),
+);
 ```
 
-## Build
+## Browser Automation
 
-```bash
-# All crates
-cargo build --release
+Phantom Click can automate click-speed test websites like
+[arealme.com](https://www.arealme.com/click-speed-test/fr/).
 
-# Specific crate
-cargo build --release -p phantom-click-cli
-cargo build --release -p phantom-click-gui
-cargo build --release -p phantom-click-mcp
+**Important:** Browsers check `event.isTrusted` — OS-level mouse events from
+`enigo` are NOT trusted. Use **Chrome DevTools Protocol (CDP)** via Playwright
+to generate trusted events.
+
+```js
+const cdp = await page.context().newCDPSession(page);
+// Click at 50 CPS
+for (let i = 0; i < 500; i++) {
+  await cdp.send('Input.dispatchMouseEvent', {
+    type: 'mousePressed', x: cx, y: cy, button: 'left', clickCount: 1
+  });
+  await cdp.send('Input.dispatchMouseEvent', {
+    type: 'mouseReleased', x: cx, y: cy, button: 'left', clickCount: 1
+  });
+  await page.waitForTimeout(10);
+}
 ```
+
+See [docs/browser-automation.md](docs/browser-automation.md) for the full guide.
 
 ## Permission
 
-**macOS:** Requires **Accessibility** permission.
-`System Settings → Privacy & Security → Accessibility → Add Terminal.app (or your binary)`
+**macOS:** Requires **Accessibility** permission for OS-level clicking.
+`System Settings → Privacy & Security → Accessibility → Add Terminal.app`
 
-**Linux:** Requires X11 libraries.
+For **browser automation**, use Playwright's CDP instead (no permissions needed).
+
+**Linux:** Requires X11 development libraries.
 ```bash
 sudo apt install libx11-dev libxi-dev libxtst-dev libxdo-dev pkg-config
 ```
 
-## Releases
+## Prebuilt Binaries
 
-Prebuilt binaries are available on the [Releases page](https://github.com/halimbahae/phantom-click/releases).
+Download from the [Releases page](https://github.com/halimbahae/phantom-click/releases).
 
 | Platform | Arch | Binary |
 |----------|------|--------|
@@ -124,7 +213,7 @@ Prebuilt binaries are available on the [Releases page](https://github.com/halimb
 Cargo.toml              # Workspace root
 crates/
 ├── phantom-click/      # Library (published to crates.io)
-│   ├── src/cursor.rs   #   Cross-platform cursor position
+│   ├── src/cursor.rs   #   Cross-platform cursor position & movement
 │   ├── src/clicker.rs  #   Click simulation & auto-clicker
 │   └── src/lib.rs      #   Public API
 ├── cli/                # TUI binary (crossterm + rdev)
@@ -133,26 +222,42 @@ crates/
 │   └── src/main.rs     #   Native desktop window
 └── mcp/                # MCP server binary
     └── src/main.rs     #   JSON-RPC stdio server
+docs/
+├── browser-automation.md  # Playwright + CDP click test guide
+└── mcp-integration.md     # AI assistant MCP setup
+install.sh              # One-line installer
 ```
+
+## Future Improvements
+
+- **Windows CLI** – Fix cross-compilation from Docker
+- **Network MCP** – TCP/WebSocket transport in addition to stdio
+- **browser_click MCP tool** – Native CDP-based trusted click tool (bundled
+  Playwright)
+- **Custom hotkeys** – User-configurable key bindings in TUI/GUI
+- **Click jitter** – Per-click timing jitter to mimic human clicking
+- **Screenshare mode** – Stream click visualization overlay
+- **Profile saving** – Save/load CPS profiles per game/website
 
 ## Contributing
 
-Contributions are welcome!
+Contributions welcome! To collaborate:
 
-1. Fork the repository
+1. Fork the repo
 2. Create a feature branch (`git checkout -b feature/awesome`)
-3. Commit your changes (`git commit -m 'Add awesome feature'`)
+3. Commit (`git commit -m 'Add awesome feature'`)
 4. Push (`git push origin feature/awesome`)
 5. Open a Pull Request
 
-Please ensure:
-- `cargo build --release` passes without warnings
-- Code follows existing style and conventions
+Please ensure `cargo build --release` passes without warnings and code follows
+existing conventions.
 
 ## License
 
-MIT License — see [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE).
 
 ## Author
 
 **Bahae Eddine Halim** — [@halimbahae](https://github.com/halimbahae)
+
+Want to collaborate? Reach out at **cto@xai.ma**
