@@ -308,6 +308,47 @@
   </div>
 </div>
 
+<section>
+  <div class="container">
+    <h2>Browser Automation</h2>
+    <p style="text-align:center; color:#a5d6a7; margin-bottom:20px;">
+      Use <code>browser_click</code> for trusted click events in Chrome/Chromium via CDP.
+    </p>
+
+    <div style="
+      background:#050805;
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:4px;
+      max-width:700px;
+      margin:0 auto;
+      box-shadow:0 0 30px rgba(105,240,174,0.04);
+    ">
+      <!-- Terminal title bar -->
+      <div style="
+        display:flex;align-items:center;gap:8px;
+        padding:10px 14px 6px;
+        font-size:0.75rem;color:var(--muted);
+      ">
+        <span style="width:10px;height:10px;border-radius:50%;background:#ff5f56;"></span>
+        <span style="width:10px;height:10px;border-radius:50%;background:#ffbd2e;"></span>
+        <span style="width:10px;height:10px;border-radius:50%;background:#27c93f;"></span>
+        <span style="margin-left:8px;">bash — phantom-click-cdp</span>
+      </div>
+      <!-- Animated terminal output -->
+      <pre id="term" style="
+        background:transparent;
+        border:none;
+        padding:8px 18px 18px;
+        margin:0;
+        min-height:160px;
+        font-size:0.8rem;
+        line-height:1.6;
+      "></pre>
+    </div>
+  </div>
+</section>
+
 <section id="features">
   <div class="container">
     <h2>Features</h2>
@@ -476,131 +517,6 @@ $ <span class="cmd">phantom-click-gui</span>          # Launch desktop GUI</pre>
   </div>
 </section>
 
-<section>
-  <div class="container">
-    <h2>Browser Automation</h2>
-    <p style="text-align:center; color:#a5d6a7; margin-bottom:20px;">
-      Use <code>browser_click</code> for trusted click events in Chrome/Chromium via CDP.
-    </p>
-
-    <div style="
-      background:#050805;
-      border:1px solid var(--border);
-      border-radius:10px;
-      padding:4px;
-      max-width:700px;
-      margin:0 auto;
-      box-shadow:0 0 30px rgba(105,240,174,0.04);
-    ">
-      <!-- Terminal title bar -->
-      <div style="
-        display:flex;align-items:center;gap:8px;
-        padding:10px 14px 6px;
-        font-size:0.75rem;color:var(--muted);
-      ">
-        <span style="width:10px;height:10px;border-radius:50%;background:#ff5f56;"></span>
-        <span style="width:10px;height:10px;border-radius:50%;background:#ffbd2e;"></span>
-        <span style="width:10px;height:10px;border-radius:50%;background:#27c93f;"></span>
-        <span style="margin-left:8px;">bash — phantom-click-cdp</span>
-      </div>
-      <!-- Animated terminal output -->
-      <pre id="term" style="
-        background:transparent;
-        border:none;
-        padding:8px 18px 18px;
-        margin:0;
-        min-height:160px;
-        font-size:0.8rem;
-        line-height:1.6;
-      "></pre>
-    </div>
-  </div>
-</section>
-
-<script>
-(function() {
-  const lines = [
-    { text: '# Start Chrome with remote debugging:', speed: 20, pause: 400 },
-    { text: '/Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome \\', speed: 14, pause: 0 },
-    { text: '  --remote-debugging-port=9222 \\', speed: 12, pause: 0 },
-    { text: '  --remote-allow-origins=* \\', speed: 12, pause: 0 },
-    { text: '  --user-data-dir=/tmp/chrome-cdp', speed: 12, pause: 500 },
-    { text: '', speed: 0, pause: 300 },
-    { text: '# Then use the MCP tool browser_click:', speed: 20, pause: 400 },
-    { text: '# cps: 100, duration_secs: 5, x: 500, y: 300', speed: 14, pause: 600 },
-    { text: '', speed: 0, pause: 300 },
-    { text: '# Or use the standalone Playwright script:', speed: 20, pause: 400 },
-    { text: 'node tools/playwright-click.mjs \\', speed: 14, pause: 0 },
-    { text: '  --cdp http://127.0.0.1:9222 \\', speed: 12, pause: 0 },
-    { text: '  --x 500 --y 300 --cps 80 --duration 4', speed: 12, pause: 800 },
-  ];
-
-  const el = document.getElementById('term');
-  if (!el) return;
-
-  let lineIdx = 0;
-  let charIdx = 0;
-  let output = '';
-  let isRunning = true;
-
-  // Blinking cursor span
-  const cursor = '<span style="color:var(--accent);animation:blink 0.8s step-end infinite;">▌</span>';
-  const style = document.createElement('style');
-  style.textContent = '@keyframes blink { 50% { opacity: 0; } }';
-  document.head.appendChild(style);
-
-  function tick() {
-    if (!isRunning) return;
-
-    if (lineIdx >= lines.length) {
-      el.innerHTML = output + cursor;
-      return;
-    }
-
-    const line = lines[lineIdx];
-    if (line.text === '') {
-      output += '\n';
-      lineIdx++;
-      el.innerHTML = output + cursor;
-      setTimeout(tick, 200);
-      return;
-    }
-
-    if (charIdx < line.text.length) {
-      output += line.text[charIdx];
-      charIdx++;
-      el.innerHTML = output + cursor;
-      setTimeout(tick, line.speed || 15);
-    } else {
-      output += '\n';
-      charIdx = 0;
-      lineIdx++;
-      el.innerHTML = output + cursor;
-      setTimeout(tick, line.pause || 200);
-    }
-  }
-
-  // Respect reduced motion
-  const q = window.matchMedia('(prefers-reduced-motion: reduce)');
-  if (q.matches) {
-    el.textContent = lines.map(l => l.text).join('\n');
-    return;
-  }
-
-  // Start after a short delay when visible
-  const observer = new IntersectionObserver(entries => {
-    for (const e of entries) {
-      if (e.isIntersecting) {
-        setTimeout(tick, 600);
-        observer.disconnect();
-        break;
-      }
-    }
-  }, { threshold: 0.3 });
-  observer.observe(el);
-})();
-</script>
-
 <footer>
   <div class="container">
     <p style="margin-bottom:20px;">
@@ -642,6 +558,86 @@ $ <span class="cmd">phantom-click-gui</span>          # Launch desktop GUI</pre>
 
 <div class="toast" id="toast">Copied!</div>
 
+<script>
+(function() {
+  const lines = [
+    { text: '# Start Chrome with remote debugging:', speed: 20, pause: 400 },
+    { text: '/Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome \\', speed: 14, pause: 0 },
+    { text: '  --remote-debugging-port=9222 \\', speed: 12, pause: 0 },
+    { text: '  --remote-allow-origins=* \\', speed: 12, pause: 0 },
+    { text: '  --user-data-dir=/tmp/chrome-cdp', speed: 12, pause: 500 },
+    { text: '', speed: 0, pause: 300 },
+    { text: '# Then use the MCP tool browser_click:', speed: 20, pause: 400 },
+    { text: '# cps: 100, duration_secs: 5, x: 500, y: 300', speed: 14, pause: 600 },
+    { text: '', speed: 0, pause: 300 },
+    { text: '# Or use the standalone Playwright script:', speed: 20, pause: 400 },
+    { text: 'node tools/playwright-click.mjs \\', speed: 14, pause: 0 },
+    { text: '  --cdp http://127.0.0.1:9222 \\', speed: 12, pause: 0 },
+    { text: '  --x 500 --y 300 --cps 80 --duration 4', speed: 12, pause: 800 },
+  ];
+
+  const el = document.getElementById('term');
+  if (!el) return;
+
+  let lineIdx = 0;
+  let charIdx = 0;
+  let output = '';
+  let isRunning = true;
+
+  const cursor = '<span style="color:var(--accent);animation:blink 0.8s step-end infinite;">▌</span>';
+  const style = document.createElement('style');
+  style.textContent = '@keyframes blink { 50% { opacity: 0; } }';
+  document.head.appendChild(style);
+
+  function tick() {
+    if (!isRunning) return;
+
+    if (lineIdx >= lines.length) {
+      el.innerHTML = output + cursor;
+      return;
+    }
+
+    const line = lines[lineIdx];
+    if (line.text === '') {
+      output += '\n';
+      lineIdx++;
+      el.innerHTML = output + cursor;
+      setTimeout(tick, 200);
+      return;
+    }
+
+    if (charIdx < line.text.length) {
+      output += line.text[charIdx];
+      charIdx++;
+      el.innerHTML = output + cursor;
+      setTimeout(tick, line.speed || 15);
+    } else {
+      output += '\n';
+      charIdx = 0;
+      lineIdx++;
+      el.innerHTML = output + cursor;
+      setTimeout(tick, line.pause || 200);
+    }
+  }
+
+  const q = window.matchMedia('(prefers-reduced-motion: reduce)');
+  if (q.matches) {
+    el.textContent = lines.map(l => l.text).join('\n');
+    return;
+  }
+
+  const observer = new IntersectionObserver(entries => {
+    for (const e of entries) {
+      if (e.isIntersecting) {
+        setTimeout(tick, 600);
+        observer.disconnect();
+        break;
+      }
+    }
+  }, { threshold: 0.3 });
+  observer.observe(el);
+})();
+</script>
 <script>
 function copy(btn) {
   const code = btn.previousElementSibling;
