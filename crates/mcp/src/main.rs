@@ -5,10 +5,11 @@ use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use tungstenite::Message;
 
 use phantom_click::{clicker, cursor};
 
-const VERSION: &str = "0.3.0";
+const VERSION: &str = "0.4.0";
 
 #[derive(Deserialize)]
 struct RpcRequest {
@@ -31,6 +32,46 @@ fn respond(id: u64, result: Value) {
     let mut out = io::stdout().lock();
     let _ = writeln!(out, "{}", line);
     let _ = out.flush();
+}
+
+fn cdp_click(cdp_url: &str, x: f64, y: f64, cps: u64, duration_secs: f64, global_timeout: &AtomicBool) -> Result<(u64, f64), String> {
+    let (mut socket, _) = tungstenite::connect(cdp_url)
+        .map_err(|e| format!("CDP connect failed: {}", e))?;
+
+    let start = Instant::now();
+    let interval_us = 1_000_000 / cps.max(1);
+    let mut count: u64 = 0;
+    let mut msg_id: u64 = 1;
+
+    loop {
+        if global_timeout.load(Ordering::Relaxed) { break; }
+        if start.elapsed().as_secs_f64() >= duration_secs { break; }
+
+        let press = json!({
+            "id": msg_id, "method": "Input.dispatchMouseEvent",
+            "params": { "type": "mousePressed", "x": x, "y": y, "button": "left", "clickCount": 1 }
+        });
+        msg_id += 1;
+        let release = json!({
+            "id": msg_id, "method": "Input.dispatchMouseEvent",
+            "params": { "type": "mouseReleased", "x": x, "y": y, "button": "left", "clickCount": 1 }
+        });
+        msg_id += 1;
+
+        if socket.send(Message::Text(press.to_string())).is_err() { break; }
+        if socket.send(Message::Text(release.to_string())).is_err() { break; }
+        count += 1;
+
+        if count % 100 == 0 {
+            let _ = socket.read();
+        }
+
+        std::thread::sleep(Duration::from_micros(interval_us));
+    }
+
+    let _ = socket.close(None);
+    let elapsed = start.elapsed().as_secs_f64();
+    Ok((count, elapsed))
 }
 
 fn handle_request(req: RpcRequest, clicking: &Arc<AtomicBool>, cps_val: &Arc<AtomicU64>, global_timeout: &Arc<AtomicBool>, _silent: bool) {
@@ -93,6 +134,32 @@ fn handle_request(req: RpcRequest, clicking: &Arc<AtomicBool>, cps_val: &Arc<Ato
                         "name": "get_status",
                         "description": "Get phantom-click status info",
                         "inputSchema": { "type": "object", "properties": {} }
+                    },
+                    {
+                        "name": "browser_click",
+                        "description": "Click inside a browser via CDP (Chrome DevTools Protocol). Generates TRUSTED events that pass event.isTrusted checks.",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "cdp_url": {
+                                    "type": "string",
+                                    "description": "CDP WebSocket URL (e.g., ws://127.0.0.1:9222/devtools/browser/...)"
+                                },
+                                "x": { "type": "number", "description": "X coordinate on page" },
+                                "y": { "type": "number", "description": "Y coordinate on page" },
+                                "cps": {
+                                    "type": "number",
+                                    "description": "Clicks per second (1-200, default: 10)",
+                                    "default": 10
+                                },
+                                "duration_secs": {
+                                    "type": "number",
+                                    "description": "How many seconds to click for (default: 5)",
+                                    "default": 5
+                                }
+                            },
+                            "required": ["cdp_url", "x", "y"]
+                        }
                     }
                 ]
             }));
@@ -176,6 +243,38 @@ fn handle_request(req: RpcRequest, clicking: &Arc<AtomicBool>, cps_val: &Arc<Ato
                         }]
                     }));
                 }
+                "browser_click" => {
+                    let cdp_url = req.params["arguments"]["cdp_url"].as_str().unwrap_or("").to_string();
+                    let x = req.params["arguments"]["x"].as_f64().unwrap_or(0.0);
+                    let y = req.params["arguments"]["y"].as_f64().unwrap_or(0.0);
+                    let cps = req.params["arguments"]["cps"].as_f64().unwrap_or(10.0).max(1.0).min(200.0) as u64;
+                    let duration = req.params["arguments"]["duration_secs"].as_f64().unwrap_or(5.0).max(0.1).min(3600.0);
+
+                    if cdp_url.is_empty() {
+                        respond(req.id, json!({
+                            "content": [{ "type": "text", "text": "Error: cdp_url is required. Start Chrome with --remote-debugging-port=9222" }]
+                        }));
+                        return;
+                    }
+
+                    match cdp_click(&cdp_url, x, y, cps, duration, global_timeout) {
+                        Ok((count, elapsed)) => {
+                            let reason = if global_timeout.load(Ordering::SeqCst) {
+                                format!(" (stopped by global timeout)")
+                            } else { String::new() };
+                            respond(req.id, json!({
+                                "content": [{
+                                    "type": "text",
+                                    "text": format!("Browser: clicked {}x at ({:.0},{:.0}) in {:.1}s at {} CPS{}",
+                                        count, x, y, elapsed, cps, reason)
+                                }]
+                            }));
+                        }
+                        Err(e) => respond(req.id, json!({
+                            "content": [{ "type": "text", "text": format!("Browser click failed: {}", e) }]
+                        })),
+                    }
+                }
                 _ => respond(req.id, json!({
                     "content": [{ "type": "text", "text": format!("Unknown tool: {}", name) }]
                 })),
@@ -200,8 +299,15 @@ fn print_usage() {
     eprintln!("  get_cursor_position       Get mouse position");
     eprintln!("  move_mouse                Move cursor to (x, y)");
     eprintln!("  click                     Single click at current position");
-    eprintln!("  click_for_duration        Click at CPS for N seconds");
+    eprintln!("  click_for_duration        Click at CPS for N seconds (OS-level)");
+    eprintln!("  browser_click             Click in browser via CDP (trusted events)");
     eprintln!("  get_status                Get server status");
+    eprintln!();
+    eprintln!("BROWSER CLICK (browser_click):");
+    eprintln!("  Requires Chrome started with:");
+    eprintln!("    /Applications/Google\\ Chrome.app/Contents/MacOS/Google Chrome \\");
+    eprintln!("      --remote-debugging-port=9222");
+    eprintln!("  Then pass the CDP WebSocket URL from chrome://inspect");
 }
 
 fn main() {

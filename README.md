@@ -118,7 +118,7 @@ Options:
 - `-v, --verbose` – Enable stderr logging
 
 Available tools: `get_cursor_position`, `move_mouse`, `click`,
-`click_for_duration`, `get_status`.
+`click_for_duration`, `browser_click`, `get_status`.
 
 See [docs/mcp-integration.md](docs/mcp-integration.md) for AI assistant config.
 
@@ -164,12 +164,24 @@ Phantom Click can automate click-speed test websites like
 [arealme.com](https://www.arealme.com/click-speed-test/fr/).
 
 **Important:** Browsers check `event.isTrusted` — OS-level mouse events from
-`enigo` are NOT trusted. Use **Chrome DevTools Protocol (CDP)** via Playwright
+`enigo` are NOT trusted. Use the `browser_click` MCP tool or Playwright's CDP
 to generate trusted events.
+
+### Method 1: MCP `browser_click` (recommended)
+
+Start Chrome with remote debugging, then use the MCP server:
+
+```bash
+phantom-click-mcp
+
+# Then call browser_click:
+# {"name": "browser_click", "arguments": {"cdp_url": "ws://...", "x": 341, "y": 684, "cps": 100, "duration_secs": 5}}
+```
+
+### Method 2: Playwright + CDP
 
 ```js
 const cdp = await page.context().newCDPSession(page);
-// Click at 50 CPS
 for (let i = 0; i < 500; i++) {
   await cdp.send('Input.dispatchMouseEvent', {
     type: 'mousePressed', x: cx, y: cy, button: 'left', clickCount: 1

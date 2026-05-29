@@ -38,6 +38,7 @@ phantom-click-mcp --verbose
 | `click` | Single left-click at current cursor position |
 | `click_for_duration` | Clicks repeatedly at `cps` for `duration_secs` |
 | `get_status` | Returns server info, cursor position, and click status |
+| `browser_click` | Click inside a browser via CDP (trusted events) |
 
 ## Protocol
 
@@ -122,6 +123,16 @@ The `--timeout` flag sets a hard limit on execution time. When triggered, it:
 This is especially useful when connecting from AI assistants that may lose
 track of the server's state.
 
+## Browser Click
+
+The `browser_click` tool generates **trusted** browser events via CDP.
+
+1. Start Chrome with `--remote-debugging-port=9222 --remote-allow-origins=*`
+2. Get the page WebSocket URL from `http://127.0.0.1:9222/json`
+3. Call `browser_click` with `cdp_url`, `x`, `y`, `cps`, `duration_secs`
+
+See [docs/browser-automation.md](browser-automation.md) for full details.
+
 ## Version
 
-Current version: `0.3.0`
+Current version: `0.4.0`

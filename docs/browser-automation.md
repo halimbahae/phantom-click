@@ -1,95 +1,133 @@
-# Browser Automation with Playwright + CDP
+# Browser Automation with Phantom Click
 
-Phantom Click uses **Chrome DevTools Protocol (CDP)** to generate trusted mouse
-events inside the browser. OS-level clicks (via `enigo`) are **not trusted** by
-the browser and fail the `event.isTrusted` check.
+The `browser_click` tool in `phantom-click-mcp` generates **trusted browser
+events** via Chrome DevTools Protocol (CDP). Unlike OS-level clicks (which fail
+`event.isTrusted` in the browser), CDP events pass all browser security checks.
 
-This guide shows how to automate click-speed tests using Playwright.
+## How It Works
+
+`browser_click` connects to Chrome's CDP WebSocket endpoint and dispatches
+`Input.dispatchMouseEvent` commands directly. These are the same trusted events
+that Chrome receives when you physically click.
 
 ## Prerequisites
 
+Start Chrome with remote debugging enabled:
+
 ```bash
-# Install Playwright
-npm init -y
-npm install playwright
-npx playwright install chromium
-
-# Or use the Playwright MCP server
+# macOS
+"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+  --remote-debugging-port=9222 \
+  --remote-allow-origins=* \
+  --user-data-dir=/tmp/chrome-cdp \
+  "https://www.arealme.com/click-speed-test/fr/"
 ```
 
-## Basic Usage
+Get the page WebSocket URL:
 
-```js
-import { chromium } from 'playwright';
+```bash
+# Find the page WS URL
+curl -s http://127.0.0.1:9222/json | python3 -c "
+import sys, json
+pages = json.load(sys.stdin)
+for p in pages:
+    if 'arealme' in p.get('url', ''):
+        print(p['webSocketDebuggerUrl'])
+"
+```
 
-const browser = await chromium.launch({ headless: false });
-const page = await browser.newPage();
-await page.goto('https://www.arealme.com/click-speed-test/fr/');
-await page.waitForSelector('#clickarena');
+This returns something like:
+`ws://127.0.0.1:9222/devtools/page/XXXXXXXXXXXX`
 
-// Get button position
-const box = await page.locator('#clickarena').boundingBox();
-const cx = box.x + box.width / 2;
-const cy = box.y + box.height / 2;
+## Using browser_click
 
-// Get CDP session for trusted events
-const cdp = await page.context().newCDPSession(page);
+With the MCP server running:
 
-// Start test with trusted click
-await cdp.send('Input.dispatchMouseEvent', {
-  type: 'mousePressed', x: cx, y: cy, button: 'left', clickCount: 1
-});
-await cdp.send('Input.dispatchMouseEvent', {
-  type: 'mouseReleased', x: cx, y: cy, button: 'left', clickCount: 1
-});
-
-await page.waitForTimeout(500);
-
-// Click at 50 CPS (20ms per click) for 10 seconds
-const clicks = 500;
-for (let i = 0; i < clicks; i++) {
-  await cdp.send('Input.dispatchMouseEvent', {
-    type: 'mousePressed', x: cx, y: cy, button: 'left', clickCount: 1
-  });
-  await cdp.send('Input.dispatchMouseEvent', {
-    type: 'mouseReleased', x: cx, y: cy, button: 'left', clickCount: 1
-  });
-  await page.waitForTimeout(10); // 100 CPS
+```json
+{
+  "name": "browser_click",
+  "arguments": {
+    "cdp_url": "ws://127.0.0.1:9222/devtools/page/XXXXXXXXXXXX",
+    "x": 341,
+    "y": 684,
+    "cps": 100,
+    "duration_secs": 4
+  }
 }
-
-// Wait for results
-await page.waitForTimeout(3000);
-const title = await page.title();
-console.log('Result:', title);
 ```
 
-## CPS Calibration
+Parameters:
+| Param | Required | Description |
+|-------|----------|-------------|
+| `cdp_url` | ✅ | Chrome DevTools Protocol WS URL |
+| `x` | ✅ | X coordinate on the page |
+| `y` | ✅ | Y coordinate on the page |
+| `cps` | ❌ | Clicks per second (1-200, default 10) |
+| `duration_secs` | ❌ | Duration in seconds (default 5) |
 
-| `waitForTimeout` | Theoretical CPS | Real CPS (tested) |
-|-----------------|-----------------|-------------------|
-| 20ms | 50 | ~40 |
-| 10ms | 100 | ~80 |
-| 5ms | 200 | ~140 |
+## Example: Click Speed Test
 
-Real-world CPS is lower due to CDP round-trip overhead.
+1. Start Chrome with CDP and navigate to the test
+2. Find the click button position:
+   ```js
+   // In Chrome DevTools console:
+   const b = document.getElementById('clickarena');
+   const r = b.getBoundingClientRect();
+   console.log(`Center: (${r.left + r.width/2}, ${r.top + r.height/2})`);
+   ```
+3. Send browser_click with `{x, y, cps: 100, duration_secs: 5}`
+4. Watch the click counter go up in real-time!
 
-## Integration with Phantom Click MCP
+## Performance
 
-The MCP server (`phantom-click-mcp`) provides OS-level clicking tools. For
-browser automation, combine Playwright's CDP (trusted clicks) with the MCP:
+| Target CPS | Actual CPS (tested) | Notes |
+|-----------|-------------------|-------|
+| 50 | ~41 | Conservative, reliable |
+| 100 | ~82 | Good performance |
+| 200 | ~140+ | Near-max rate |
 
-1. Playwright starts the test with CDP
-2. Wait for the countdown
-3. Use MCP `click_for_duration` for sustained clicking (if your app has
-   Accessibility permissions)
-4. Read results from the page
+Actual CPS is slightly lower than target due to WebSocket round-trip overhead.
 
-## Troubleshooting
+## Limitations
 
-- **`event.isTrusted = false`**: Use CDP (`Input.dispatchMouseEvent`) instead
-  of OS-level clicks. The browser does NOT trust software-generated mouse events
-  from other processes.
-- **macOS Permission**: Even with Accessibility access, enigo/ CGEventPost
-  events are not trusted by browsers (Chrome, Safari, Firefox).
-- **Click not registering**: Check that coordinates point to the correct element.
-  Use `boundingBox()` to get precise positions.
+- Requires Chrome with `--remote-debugging-port` and `--remote-allow-origins=*`
+- Only works with Chromium-based browsers (Chrome, Edge, Brave)
+- Coordinates are page-relative (not screen-absolute)
+- Doesn't move the physical mouse cursor
+
+## Full Workflow Script
+
+```bash
+#!/usr/bin/env bash
+# 1. Start Chrome
+"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+  --remote-debugging-port=9222 \
+  --remote-allow-origins=* \
+  --user-data-dir=/tmp/chrome-cdp \
+  "https://www.arealme.com/click-speed-test/fr/" &>/dev/null &
+
+sleep 4
+
+# 2. Get page WS URL
+PAGE_WS=$(curl -s http://127.0.0.1:9222/json | python3 -c "
+import sys, json
+pages = json.load(sys.stdin)
+for p in pages:
+    if 'arealme' in p.get('url', ''):
+        print(p['webSocketDebuggerUrl'])
+")
+
+# 3. Click at 100 CPS for 5 seconds
+printf '{"id":1,"method":"initialize"}\n{"id":2,"method":"tools/call","params":{"name":"browser_click","arguments":{"cdp_url":"%s","x":341,"y":684,"cps":100,"duration_secs":5}}}\n' "$PAGE_WS" | \
+  phantom-click-mcp --timeout 10
+
+# 4. Check result
+echo "Result:"
+curl -s http://127.0.0.1:9222/json | python3 -c "
+import sys, json
+pages = json.load(sys.stdin)
+for p in pages:
+    if 'arealme' in p.get('url', ''):
+        print(f\"  {p['title']}\")
+"
+```
