@@ -132,11 +132,9 @@ if command -v cargo &>/dev/null; then
   echo "    Installing phantom-click-gui..."
   cargo install phantom-click-gui || echo "    (gui install optional, skipped)"
 
-  # Detect cargo bin directory and ensure it's in PATH
-  CARGO_BIN="$(dirname "$(cargo install --list 2>/dev/null | head -1)" 2>/dev/null)"
-  if [ -z "$CARGO_BIN" ]; then
-    CARGO_BIN="$HOME/.cargo/bin"
-  fi
+  # Cargo always installs to $CARGO_HOME/bin (default ~/.cargo/bin)
+  CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}"
+  CARGO_BIN="$CARGO_HOME/bin"
 
   if [ -d "$CARGO_BIN" ]; then
     # Symlink to INSTALL_DIR if different from cargo bin
