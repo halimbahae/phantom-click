@@ -16,7 +16,7 @@ A brutally fast, low-level terminal autoclicker built in Rust. Designed for prec
    ```bash
    git clone [https://github.com/halimbahae/phantom-click.git](https://github.com/halimbahae/phantom-click.git)
    cd phantom-click
-```
+   ```
 
 2. Build for release (critical for speed):
 ```bash
@@ -39,9 +39,9 @@ cargo run --release
 * `Up/Down Arrows` - Adjust target Clicks Per Second
 * `Ctrl + C` - Exit Terminal
 
-```
 
----
+
+
 
 ### Git Push Instructions (Do this yourself)
 
