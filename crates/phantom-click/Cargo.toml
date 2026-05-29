@@ -1,5 +1,5 @@
 [package]
-name = "phantom-click-core"
+name = "phantom-click"
 version = "0.1.0"
 edition = "2021"
 description = "Cross-platform mouse cursor position and click simulation library"

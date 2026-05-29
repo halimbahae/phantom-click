@@ -1,0 +1,13 @@
+[package]
+name = "phantom-click-gui"
+version = "0.1.0"
+edition = "2021"
+description = "Cross-platform GUI for Phantom Click auto-clicker"
+
+[[bin]]
+name = "phantom-click-gui"
+path = "src/main.rs"
+
+[dependencies]
+phantom-click = { path = "../phantom-click" }
+eframe = "0.30"

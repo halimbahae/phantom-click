@@ -5,11 +5,37 @@ use std::time::Duration;
 
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode, size};
 use crossterm::{execute, queue};
-use phantom_click_core::{clicker, cursor};
+use phantom_click::{clicker, cursor};
 
 const MATRIX_CHARS: &[u8] = b"0123456789ABCDEF";
 
+fn print_usage() {
+    eprintln!("Phantom Click - auto-clicker with global hotkeys");
+    eprintln!();
+    eprintln!("USAGE:");
+    eprintln!("  phantom-click [CPS]");
+    eprintln!();
+    eprintln!("ARGS:");
+    eprintln!("  <CPS>    Initial clicks per second (1-200, default: 10)");
+    eprintln!();
+    eprintln!("CONTROLS (work globally in any app):");
+    eprintln!("  C       Toggle clicking ON/OFF");
+    eprintln!("  Z       +1 CPS (speed up)");
+    eprintln!("  S       -1 CPS (slow down)");
+    eprintln!("  H       Toggle help overlay");
+    eprintln!("  Q/Esc   Quit");
+    eprintln!();
+    eprintln!("PERMISSION:");
+    eprintln!("  Requires Accessibility access on macOS.");
+    eprintln!("  System Settings -> Privacy & Security -> Accessibility");
+}
+
 fn main() {
+    if std::env::args().any(|a| a == "--help" || a == "-h") {
+        print_usage();
+        return;
+    }
+
     let _ = enable_raw_mode();
     let _ = execute!(stdout(), crossterm::terminal::EnterAlternateScreen);
 
@@ -24,12 +50,14 @@ fn main() {
     let clicking = Arc::new(AtomicBool::new(false));
     let cps_val = Arc::new(AtomicU64::new(initial_cps));
     let should_quit = Arc::new(AtomicBool::new(false));
+    let show_help = Arc::new(AtomicBool::new(false));
 
     clicker::spawn_clicker(Arc::clone(&clicking), Arc::clone(&cps_val));
 
     let listen_clicking = Arc::clone(&clicking);
     let listen_cps = Arc::clone(&cps_val);
     let listen_quit = Arc::clone(&should_quit);
+    let listen_help = Arc::clone(&show_help);
     std::thread::spawn(move || {
         if let Err(e) = rdev::listen(move |event| {
             use rdev::Key::*;
@@ -46,6 +74,7 @@ fn main() {
                             Some(c.saturating_sub(1).max(1))
                         });
                     }
+                    KeyH => { listen_help.fetch_xor(true, Ordering::SeqCst); }
                     KeyQ | Escape => { listen_quit.store(true, Ordering::SeqCst); }
                     _ => {}
                 }
@@ -64,7 +93,8 @@ fn main() {
         let active = clicking.load(Ordering::Relaxed);
         let cps = cps_val.load(Ordering::Relaxed);
         let (mx, my) = cursor::position();
-        draw_ui(cps, active, mx as u64, my as u64, tick);
+        let help = show_help.load(Ordering::Relaxed);
+        draw_ui(cps, active, mx as u64, my as u64, tick, help);
         std::thread::sleep(Duration::from_millis(100));
         tick = tick.wrapping_add(1);
     }
@@ -74,7 +104,7 @@ fn main() {
     let _ = execute!(stdout(), crossterm::terminal::LeaveAlternateScreen);
 }
 
-fn draw_ui(cps: u64, active: bool, mx: u64, my: u64, tick: u64) {
+fn draw_ui(cps: u64, active: bool, mx: u64, my: u64, tick: u64, help: bool) {
     let state = if active { "ON " } else { "OFF" };
     let _ = queue!(stdout(),
         crossterm::cursor::MoveTo(0, 0),
@@ -88,15 +118,42 @@ fn draw_ui(cps: u64, active: bool, mx: u64, my: u64, tick: u64) {
              ║  Mouse: {:>4},{:<4}                ║\r\n\
              ╠══════════════════════════════════╣\r\n\
              ║  [C] toggle  [Z]+CPS  [S]-CPS    ║\r\n\
-             ║  [Q][Esc] quit                   ║\r\n\
+             ║  [H] help    [Q][Esc] quit       ║\r\n\
              ║  (global keys)                   ║\r\n\
              ╚══════════════════════════════════╝\r\n",
             cps, state, mx, my
         )),
     ).ok();
 
+    if help {
+        let help_lines = [
+            "╔══════ HELP ═══════════════════╗",
+            "║                               ║",
+            "║  C  Toggle clicking on/off    ║",
+            "║  Z  Increase CPS (+1)         ║",
+            "║  S  Decrease CPS (-1)         ║",
+            "║  H  Toggle this help          ║",
+            "║  Q  Quit                      ║",
+            "║  Esc Quit                     ║",
+            "║                               ║",
+            "║  CPS: clicks per second       ║",
+            "║  Range: 1 - 200               ║",
+            "║                               ║",
+            "╚════════════════════════════════╝",
+        ];
+        for (i, line) in help_lines.iter().enumerate() {
+            let _ = queue!(stdout(),
+                crossterm::cursor::MoveTo(0, 11 + i as u16),
+                crossterm::style::SetForegroundColor(crossterm::style::Color::Rgb {
+                    r: 0, g: 255, b: 100
+                }),
+                crossterm::style::Print(line),
+            ).ok();
+        }
+    }
+
     let (w, h) = size().unwrap_or((80, 24));
-    let start_row = 12;
+    let start_row = if help { 25 } else { 12 };
     if h > start_row {
         let fill_h = (h - start_row) as u16;
         for y in 0..fill_h {

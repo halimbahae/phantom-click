@@ -1,10 +1,14 @@
 [package]
-name = "phantom-click"
+name = "phantom-click-cli"
 version = "0.2.0"
 edition = "2021"
 description = "macOS auto-clicker with global hotkeys and matrix-rain terminal UI"
 
+[[bin]]
+name = "phantom-click"
+path = "src/main.rs"
+
 [dependencies]
-phantom-click-core = { path = "../core" }
+phantom-click = { path = "../phantom-click" }
 crossterm = "0.28"
 rdev = "0.5"

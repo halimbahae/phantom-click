@@ -3,3 +3,5 @@
 *.pdb
 debug
 .DS_Store
+.playwright-mcp/
+.cargo/config.toml

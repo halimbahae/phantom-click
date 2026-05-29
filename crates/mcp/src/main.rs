@@ -3,7 +3,7 @@ use std::io::{self, BufRead, Write};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use phantom_click_core::{clicker, cursor};
+use phantom_click::{clicker, cursor};
 
 #[derive(Deserialize)]
 struct RpcRequest {
