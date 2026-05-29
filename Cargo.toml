@@ -1,10 +1,3 @@
-[package]
-name = "phantom-click"
-version = "0.2.0"
-edition = "2021"
-description = "macOS auto-clicker with global hotkeys"
-
-[dependencies]
-crossterm = "0.28"
-enigo = "0.2"
-rdev = "0.5"
+[workspace]
+members = ["crates/core", "crates/cli", "crates/mcp"]
+resolver = "2"

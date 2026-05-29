@@ -1,0 +1,12 @@
+[package]
+name = "phantom-click-core"
+version = "0.1.0"
+edition = "2021"
+description = "Cross-platform mouse cursor position and click simulation library"
+license = "MIT"
+repository = "https://github.com/halimbahae/phantom-click"
+keywords = ["mouse", "cursor", "click", "auto-clicker", "macos"]
+categories = ["hardware-support", "gui"]
+
+[dependencies]
+enigo = "0.2"
