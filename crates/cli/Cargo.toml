@@ -3,12 +3,14 @@ name = "phantom-click-cli"
 version = "0.2.0"
 edition = "2021"
 description = "macOS auto-clicker with global hotkeys and matrix-rain terminal UI"
+license = "MIT"
+repository = "https://github.com/halimbahae/phantom-click"
 
 [[bin]]
 name = "phantom-click"
 path = "src/main.rs"
 
 [dependencies]
-phantom-click = { path = "../phantom-click" }
+phantom-click = { path = "../phantom-click", version = "0.2" }
 crossterm = "0.28"
 rdev = "0.5"

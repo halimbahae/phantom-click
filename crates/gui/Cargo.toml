@@ -3,11 +3,13 @@ name = "phantom-click-gui"
 version = "0.1.0"
 edition = "2021"
 description = "Cross-platform GUI for Phantom Click auto-clicker"
+license = "MIT"
+repository = "https://github.com/halimbahae/phantom-click"
 
 [[bin]]
 name = "phantom-click-gui"
 path = "src/main.rs"
 
 [dependencies]
-phantom-click = { path = "../phantom-click" }
+phantom-click = { path = "../phantom-click", version = "0.2" }
 eframe = "0.30"
