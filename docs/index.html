@@ -15,6 +15,7 @@
       --border: #1b2e1b;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
       background: var(--bg);
@@ -23,51 +24,116 @@
     }
     .container { max-width: 960px; margin: 0 auto; padding: 0 24px; }
 
+    /* Sticky glassmorphism nav */
+    .sticky-nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(14px) saturate(180%);
+      -webkit-backdrop-filter: blur(14px) saturate(180%);
+      background: rgba(10, 14, 10, 0.55);
+      border-bottom: 1px solid rgba(105, 240, 174, 0.08);
+      padding: 0;
+      transition: 0.3s;
+    }
+    .sticky-nav .inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 24px;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    .sticky-nav .logo {
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 1rem;
+      letter-spacing: -0.02em;
+    }
+    .sticky-nav .links {
+      display: flex;
+      gap: 4px;
+    }
+    .sticky-nav .links a {
+      color: var(--fg);
+      text-decoration: none;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      transition: 0.2s;
+    }
+    .sticky-nav .links a:hover {
+      background: rgba(105, 240, 174, 0.08);
+      color: var(--accent);
+    }
+    .sticky-nav .links a.active {
+      background: rgba(105, 240, 174, 0.12);
+      color: var(--accent);
+    }
+
     /* Hero */
     .hero {
-      padding: 80px 0 40px;
+      padding: 120px 0 60px;
       text-align: center;
     }
     .hero h1 {
-      font-size: 3rem;
+      font-size: 3.2rem;
       color: var(--accent);
       letter-spacing: -0.02em;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
     }
     .hero .tagline {
       font-size: 1.2rem;
       color: var(--muted);
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
     .hero .sub {
       font-size: 0.95rem;
       color: #689f63;
-      margin-bottom: 40px;
+      margin-bottom: 48px;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
     }
+
+    /* Hero nav buttons */
+    .hero-nav {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 48px;
+    }
+    .hero-nav a {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--fg);
+      text-decoration: none;
+      padding: 10px 24px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      transition: 0.25s;
+      font-size: 0.9rem;
+      background: rgba(105, 240, 174, 0.03);
+    }
+    .hero-nav a:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(105, 240, 174, 0.08);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(105, 240, 174, 0.08);
+    }
+    .hero-nav a .arrow {
+      opacity: 0.5;
+      font-size: 0.8rem;
+    }
+
     .badge-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
     .badge-row img { height: 20px; }
 
-    /* Nav */
-    .nav {
-      display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;
-      margin-bottom: 60px;
-    }
-    .nav a {
-      color: var(--fg);
-      text-decoration: none;
-      padding: 8px 20px;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      transition: 0.2s;
-      font-size: 0.9rem;
-    }
-    .nav a:hover {
-      border-color: var(--accent);
-      color: var(--accent);
-    }
-
     /* Sections */
-    section { padding: 60px 0; }
+    section { padding: 80px 0; }
     section h2 {
       font-size: 1.5rem;
       color: var(--accent);
@@ -126,9 +192,7 @@
     }
     .method .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
     .method .note { font-size: 0.8rem; color: #689f63; width: 100%; display: none; }
-    .method.primary {
-      border-color: var(--accent);
-    }
+    .method.primary { border-color: var(--accent); }
 
     /* Tools */
     .tools { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
@@ -198,10 +262,30 @@
       .hero h1 { font-size: 2rem; }
       .method { flex-direction: column; align-items: stretch; }
       .method .label { min-width: auto; }
+      .sticky-nav .inner {
+        flex-direction: column;
+        gap: 6px;
+        padding: 8px 16px;
+      }
+      .sticky-nav .links { flex-wrap: wrap; justify-content: center; }
     }
   </style>
 </head>
 <body>
+
+<!-- Sticky glassmorphism nav -->
+<div class="sticky-nav" id="stickyNav">
+  <div class="inner">
+    <span class="logo">Phantom Click</span>
+    <div class="links">
+      <a href="#install">Install</a>
+      <a href="#features">Features</a>
+      <a href="#tools">Tools</a>
+      <a href="#usage">Usage</a>
+      <a href="#links">Links</a>
+    </div>
+  </div>
+</div>
 
 <div class="hero">
   <div class="container">
@@ -210,17 +294,16 @@
     <p class="sub">
       Click at inhuman speeds &mdash; CLI, desktop GUI, MCP server for AI assistants, and a reusable Rust library.
     </p>
-    <div class="nav">
-      <a href="#install">Install</a>
-      <a href="#features">Features</a>
-      <a href="#tools">Tools</a>
-      <a href="#usage">Usage</a>
-      <a href="#links">Links</a>
+    <div class="hero-nav">
+      <a href="#install">Install <span class="arrow">↓</span></a>
+      <a href="#features">Features <span class="arrow">↓</span></a>
+      <a href="#tools">Tools <span class="arrow">↓</span></a>
+      <a href="#usage">Usage <span class="arrow">↓</span></a>
+      <a href="#links">Links <span class="arrow">↓</span></a>
     </div>
     <div class="badge-row">
       <a href="https://crates.io/crates/phantom-click"><img src="https://img.shields.io/crates/v/phantom-click?color=success" alt="crates.io"></a>
       <a href="https://github.com/halimbahae/phantom-click"><img src="https://img.shields.io/github/v/release/halimbahae/phantom-click?color=success" alt="release"></a>
-      <a href="https://github.com/halimbahae/phantom-click/actions"><img src="https://img.shields.io/github/actions/workflow/status/halimbahae/phantom-click/ci.yml?branch=main&color=success" alt="ci"></a>
     </div>
   </div>
 </div>
@@ -264,7 +347,7 @@
 
       <div class="method primary">
         <span class="label">Binaries</span>
-        <code>curl -fsSL https://git.io/phantom-click | bash</code>
+        <code>curl -fsSL https://raw.githubusercontent.com/halimbahae/phantom-click/main/install.sh | bash</code>
         <button class="copy-btn" onclick="copy(this)">Copy</button>
         <div class="note">Downloads prebuilt binaries from the latest GitHub release.</div>
       </div>
@@ -434,6 +517,37 @@ function copy(btn) {
     setTimeout(() => toast.classList.remove('show'), 1600);
   }).catch(() => {});
 }
+
+// Active nav link tracking
+(function() {
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('.sticky-nav .links a');
+  if (!sections.length || !navLinks.length) return;
+
+  const observer = new IntersectionObserver(entries => {
+    let activeId = '';
+    for (const entry of entries) {
+      if (entry.isIntersecting) {
+        activeId = entry.target.id;
+      }
+    }
+    // If none visible, find the last passed section
+    if (!activeId) {
+      let lastId = '';
+      for (const entry of entries) {
+        if (entry.boundingClientRect.top < 200) {
+          lastId = entry.target.id;
+        }
+      }
+      activeId = lastId;
+    }
+    navLinks.forEach(a => {
+      a.classList.toggle('active', a.getAttribute('href') === '#' + activeId);
+    });
+  }, { threshold: [0, 0.25, 0.5, 0.75, 1] });
+
+  sections.forEach(s => observer.observe(s));
+})();
 </script>
 </body>
 </html>
