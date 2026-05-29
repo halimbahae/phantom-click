@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phantom Click — Cross-platform auto-clicker</title>
+  <style>
+    :root {
+      --bg: #0a0e0a;
+      --fg: #c8e6c9;
+      --accent: #69f0ae;
+      --dim: #2e7d32;
+      --muted: #558b2f;
+      --card: #111b11;
+      --border: #1b2e1b;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.6;
+    }
+    .container { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+
+    /* Hero */
+    .hero {
+      padding: 80px 0 40px;
+      text-align: center;
+    }
+    .hero h1 {
+      font-size: 3rem;
+      color: var(--accent);
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+    .hero .tagline {
+      font-size: 1.2rem;
+      color: var(--muted);
+      margin-bottom: 24px;
+    }
+    .hero .sub {
+      font-size: 0.95rem;
+      color: #689f63;
+      margin-bottom: 40px;
+    }
+    .badge-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+    .badge-row img { height: 20px; }
+
+    /* Nav */
+    .nav {
+      display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;
+      margin-bottom: 60px;
+    }
+    .nav a {
+      color: var(--fg);
+      text-decoration: none;
+      padding: 8px 20px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      transition: 0.2s;
+      font-size: 0.9rem;
+    }
+    .nav a:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* Sections */
+    section { padding: 60px 0; }
+    section h2 {
+      font-size: 1.5rem;
+      color: var(--accent);
+      margin-bottom: 32px;
+      text-align: center;
+    }
+
+    /* Features */
+    .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+    .feature {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px;
+    }
+    .feature h3 { color: var(--accent); margin-bottom: 8px; font-size: 1.05rem; }
+    .feature p { font-size: 0.9rem; color: #a5d6a7; line-height: 1.5; }
+
+    /* Install */
+    .install-methods { display: flex; flex-direction: column; gap: 16px; }
+    .method {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .method .label {
+      font-weight: 600;
+      color: var(--accent);
+      min-width: 100px;
+      font-size: 0.9rem;
+    }
+    .method code {
+      background: #000;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 0.85rem;
+      color: #e0e0e0;
+      flex: 1;
+      min-width: 200px;
+    }
+    .method .copy-btn {
+      background: transparent;
+      border: 1px solid var(--dim);
+      color: var(--fg);
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      transition: 0.2s;
+    }
+    .method .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .method .note { font-size: 0.8rem; color: #689f63; width: 100%; display: none; }
+    .method.primary {
+      border-color: var(--accent);
+    }
+
+    /* Tools */
+    .tools { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+    .tool {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px;
+    }
+    .tool h3 { color: var(--accent); margin-bottom: 4px; }
+    .tool .crate { font-size: 0.8rem; color: var(--muted); margin-bottom: 10px; }
+    .tool p { font-size: 0.9rem; color: #a5d6a7; }
+    .tool ul { list-style: none; margin-top: 12px; font-size: 0.85rem; }
+    .tool ul li::before { content: "→ "; color: var(--accent); }
+
+    /* Examples */
+    .examples { display: grid; gap: 12px; }
+    .examples pre {
+      background: #050805;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 20px;
+      overflow-x: auto;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 0.82rem;
+      color: #c8e6c9;
+    }
+    .examples pre .cmd { color: var(--accent); }
+
+    /* Links */
+    .link-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+    .link-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      text-align: center;
+    }
+    .link-card a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .link-card a:hover { text-decoration: underline; }
+    .link-card .desc { font-size: 0.8rem; color: #689f63; margin-top: 4px; }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 40px 0;
+      font-size: 0.85rem;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: var(--accent); color: #000;
+      padding: 10px 24px; border-radius: 8px; font-size: 0.85rem; font-weight: 500;
+      opacity: 0; transition: opacity 0.3s;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; }
+
+    @media (max-width: 600px) {
+      .hero h1 { font-size: 2rem; }
+      .method { flex-direction: column; align-items: stretch; }
+      .method .label { min-width: auto; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="container">
+    <h1>Phantom Click</h1>
+    <p class="tagline">Cross-platform auto-clicker &mdash; TUI &bull; GUI &bull; MCP &bull; Library</p>
+    <p class="sub">
+      Click at inhuman speeds &mdash; CLI, desktop GUI, MCP server for AI assistants, and a reusable Rust library.
+    </p>
+    <div class="nav">
+      <a href="#install">Install</a>
+      <a href="#features">Features</a>
+      <a href="#tools">Tools</a>
+      <a href="#usage">Usage</a>
+      <a href="#links">Links</a>
+    </div>
+    <div class="badge-row">
+      <a href="https://crates.io/crates/phantom-click"><img src="https://img.shields.io/crates/v/phantom-click?color=success" alt="crates.io"></a>
+      <a href="https://github.com/halimbahae/phantom-click"><img src="https://img.shields.io/github/v/release/halimbahae/phantom-click?color=success" alt="release"></a>
+      <a href="https://github.com/halimbahae/phantom-click/actions"><img src="https://img.shields.io/github/actions/workflow/status/halimbahae/phantom-click/ci.yml?branch=main&color=success" alt="ci"></a>
+    </div>
+  </div>
+</div>
+
+<section id="features">
+  <div class="container">
+    <h2>Features</h2>
+    <div class="features">
+      <div class="feature">
+        <h3>Blazing CPS</h3>
+        <p>Click rates beyond 1,000 CPS with configurable interval. OS-level clicks via <code>enigo</code>.</p>
+      </div>
+      <div class="feature">
+        <h3>Trusted Browser Clicks</h3>
+        <p>CDP-based <code>browser_click</code> sends trusted events via Chrome DevTools Protocol WebSocket &mdash; passes <code>event.isTrusted</code> checks.</p>
+      </div>
+      <div class="feature">
+        <h3>Global Hotkeys</h3>
+        <p>Toggle with <kbd>C</kbd>, adjust speed with <kbd>Z</kbd>/<kbd>S</kbd>, help with <kbd>H</kbd>, quit with <kbd>Q</kbd> or <kbd>Esc</kbd>.</p>
+      </div>
+      <div class="feature">
+        <h3>MCP Integration</h3>
+        <p>MCP server for AI coding assistants &mdash; Claude, Cursor, Windsurf, and any stdio JSON-RPC 2.0 client.</p>
+      </div>
+      <div class="feature">
+        <h3>Cross-platform</h3>
+        <p>macOS, Linux, Windows. One codebase, native cursor control on each platform.</p>
+      </div>
+      <div class="feature">
+        <h3>Matrix Rain TUI</h3>
+        <p>Green-on-black terminal UI using <code>crossterm</code>. Plus a native desktop GUI with <code>eframe</code>/<code>egui</code>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="install">
+  <div class="container">
+    <h2>Install</h2>
+    <div class="install-methods">
+
+      <div class="method primary">
+        <span class="label">Binaries</span>
+        <code>curl -fsSL https://git.io/phantom-click | bash</code>
+        <button class="copy-btn" onclick="copy(this)">Copy</button>
+        <div class="note">Downloads prebuilt binaries from the latest GitHub release.</div>
+      </div>
+
+      <div class="method">
+        <span class="label">cargo</span>
+        <code>cargo install phantom-click-cli phantom-click-mcp phantom-click-gui</code>
+        <button class="copy-btn" onclick="copy(this)">Copy</button>
+      </div>
+
+      <div class="method">
+        <span class="label">Library</span>
+        <code>cargo add phantom-click</code>
+        <button class="copy-btn" onclick="copy(this)">Copy</button>
+        <div class="note">Then use <code>clicker::click_for_duration()</code> or <code>cursor::move_to()</code> in your Rust project.</div>
+      </div>
+
+      <div class="method">
+        <span class="label">Release</span>
+        <code>gh release download --repo halimbahae/phantom-click</code>
+        <button class="copy-btn" onclick="copy(this)">Copy</button>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<section id="tools">
+  <div class="container">
+    <h2>Tools</h2>
+    <div class="tools">
+      <div class="tool">
+        <h3>phantom-click-cli</h3>
+        <div class="crate">crates.io &mdash; v0.2.0</div>
+        <p>Terminal UI auto-clicker with matrix-rain aesthetics. Set CPS, start/stop, adjust speed without leaving the terminal.</p>
+        <ul>
+          <li>Global hotkeys</li>
+          <li>Real-time CPS display</li>
+          <li>Minimal &amp; fast</li>
+        </ul>
+      </div>
+      <div class="tool">
+        <h3>phantom-click-gui</h3>
+        <div class="crate">crates.io &mdash; v0.1.0</div>
+        <p>Native desktop GUI using <code>eframe</code>/<code>egui</code>. Point, click, configure visually.</p>
+        <ul>
+          <li>Native macOS/Linux/Windows</li>
+          <li>Visual CPS slider</li>
+          <li>Start/Stop controls</li>
+        </ul>
+      </div>
+      <div class="tool">
+        <h3>phantom-click-mcp</h3>
+        <div class="crate">crates.io &mdash; v0.4.0</div>
+        <p>MCP server for AI assistants. 6 tools: <code>get_cursor_position</code>, <code>move_mouse</code>, <code>click</code>, <code>click_for_duration</code>, <code>get_status</code>, <code>browser_click</code>.</p>
+        <ul>
+          <li>Stdio JSON-RPC 2.0</li>
+          <li>Browser trusted clicks via CDP</li>
+          <li>Silent mode for daemon use</li>
+        </ul>
+      </div>
+      <div class="tool">
+        <h3>phantom-click</h3>
+        <div class="crate">crates.io &mdash; v0.2.0</div>
+        <p>Rust library powering everything. <code>clicker</code>, <code>cursor</code>, and platform abstractions.</p>
+        <ul>
+          <li><code>clicker::click_for_duration()</code></li>
+          <li><code>cursor::move_to(x, y)</code></li>
+          <li><code>cursor::position()</code></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="usage">
+  <div class="container">
+    <h2>Quick Start</h2>
+    <div class="examples">
+<pre>$ <span class="cmd">phantom-click</span>              # Launch TUI (default 10 CPS)
+$ <span class="cmd">phantom-click --cps 50</span>     # Start at 50 clicks/sec
+Press <span class="cmd">C</span> to toggle, <span class="cmd">Z</span>/<span class="cmd">S</span> for speed, <span class="cmd">Q</span> to quit</pre>
+<pre>$ <span class="cmd">phantom-click-mcp</span>          # Start MCP server
+$ <span class="cmd">phantom-click-gui</span>          # Launch desktop GUI</pre>
+<pre># AI assistant MCP config (claude.json / cursor.json):
+{
+  "mcpServers": {
+    "phantom-click": {
+      "command": "phantom-click-mcp"
+    }
+  }
+}</pre>
+    </div>
+  </div>
+</section>
+
+<section id="links">
+  <div class="container">
+    <h2>Links</h2>
+    <div class="link-grid">
+      <div class="link-card">
+        <a href="https://github.com/halimbahae/phantom-click">GitHub</a>
+        <div class="desc">Source code &amp; releases</div>
+      </div>
+      <div class="link-card">
+        <a href="https://crates.io/crates/phantom-click">crates.io</a>
+        <div class="desc">Rust library</div>
+      </div>
+      <div class="link-card">
+        <a href="https://crates.io/crates/phantom-click-cli">phantom-click-cli</a>
+        <div class="desc">CLI crate</div>
+      </div>
+      <div class="link-card">
+        <a href="https://crates.io/crates/phantom-click-mcp">phantom-click-mcp</a>
+        <div class="desc">MCP server crate</div>
+      </div>
+      <div class="link-card">
+        <a href="https://crates.io/crates/phantom-click-gui">phantom-click-gui</a>
+        <div class="desc">GUI crate</div>
+      </div>
+      <div class="link-card">
+        <a href="https://github.com/halimbahae/phantom-click/releases">Releases</a>
+        <div class="desc">Prebuilt binaries</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>Browser Automation</h2>
+    <p style="text-align:center; color:#a5d6a7; margin-bottom:20px;">
+      Use <code>browser_click</code> for trusted click events in Chrome/Chromium via CDP.
+    </p>
+    <div class="examples">
+<pre># Start Chrome with remote debugging:
+/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome \
+  --remote-debugging-port=9222 \
+  --remote-allow-origins=* \
+  --user-data-dir=/tmp/chrome-cdp
+
+# Then use the MCP tool browser_click:
+# cps: 100, duration_secs: 5, x: 500, y: 300</pre>
+<pre># Or use the standalone Playwright script:
+node tools/playwright-click.mjs \
+  --cdp http://127.0.0.1:9222 \
+  --x 500 --y 300 --cps 80 --duration 4</pre>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p>Phantom Click &mdash; MIT License &mdash; <a href="mailto:cto@xai.ma" style="color:var(--accent)">cto@xai.ma</a></p>
+  </div>
+</footer>
+
+<div class="toast" id="toast">Copied!</div>
+
+<script>
+function copy(btn) {
+  const code = btn.previousElementSibling;
+  if (!code) return;
+  navigator.clipboard.writeText(code.textContent.trim()).then(() => {
+    const toast = document.getElementById('toast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 1600);
+  }).catch(() => {});
+}
+</script>
+</body>
+</html>
