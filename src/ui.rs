@@ -147,10 +147,10 @@ fn render_duration_row(
         .constraints(constraints)
         .split(area);
 
-    for (_i, idx) in (start_offset..).zip(0..n) {
-        let is_sel = app.selected_idx == idx;
-        let label = labels[idx - start_offset];
-        let secs = durations[idx - start_offset];
+    for (global_idx, local_idx) in (start_offset..).zip(0..n) {
+        let is_sel = app.selected_idx == global_idx;
+        let label = labels[local_idx];
+        let secs = durations[local_idx];
 
         let style = if is_sel {
             Style::new().fg(Color::Black).bg(HACK_GREEN).bold()
@@ -161,7 +161,7 @@ fn render_duration_row(
         let text = format!("[{}] {:>3}s", label, secs);
         let cell = Paragraph::new(Line::from(Span::styled(text, style)))
             .alignment(Alignment::Center);
-        frame.render_widget(cell, cols[idx - start_offset]);
+        frame.render_widget(cell, cols[local_idx]);
     }
 }
 
